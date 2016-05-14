@@ -1,5 +1,6 @@
 package com.digent.tim.digenttracker;
 
+import android.app.Activity;
 import android.app.Application;
 import android.app.ProgressDialog;
 import android.os.AsyncTask;
@@ -9,6 +10,7 @@ import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -20,7 +22,7 @@ import javax.net.ssl.HttpsURLConnection;
  */
 public class TheTVDBInterface extends Application {
     private JSONObject loginCredentials = new JSONObject();
-    private JSONObject jwtToken = new JSONObject();
+    private JSONObject jwtToken = null;
 
     public TheTVDBInterface() {
         try {
@@ -38,11 +40,28 @@ public class TheTVDBInterface extends Application {
     }
 
     public void loginTVDB() {
-        new TheTVDBLogin().execute();
+        if (jwtToken == null)
+            new TheTVDBLogin().execute();
     }
 
-    public void searchTVDB(SearchSeriesActivity activity, String message) {
-        new TheTVDBSearch(activity).execute(message);
+    public void searchTVDB(TVDBActivty activity, String path, String query) {
+        new TheTVDBSearch(activity).execute(path, query);
+    }
+
+    public void getGraphicalInformation(TVDBActivty activity, String id, String keyType, String subKey) {
+        new TheTVDBGetGraphical(activity).execute(id, keyType, subKey);
+    }
+
+    private void createHeader(HttpURLConnection connection) {
+        try {
+            String bearerAuth = "Bearer " + jwtToken.get("token").toString();
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("Authorization", bearerAuth);
+            connection.setRequestProperty("Accept", "application/json");
+            connection.setRequestProperty("Accept-Language", "en-US");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private class TheTVDBLogin extends AsyncTask<Void, Integer, Long> {
@@ -98,11 +117,11 @@ public class TheTVDBInterface extends Application {
 
     private class TheTVDBSearch extends AsyncTask<String, Integer, String> {
         private String searchResult;
-        private SearchSeriesActivity activity;
+        private TVDBActivty activity;
         ProgressDialog progressDialog;
         private HttpURLConnection connection = null;
 
-        public TheTVDBSearch(SearchSeriesActivity obj) {
+        public TheTVDBSearch(TVDBActivty obj) {
             activity = obj;
         }
 
@@ -118,20 +137,11 @@ public class TheTVDBInterface extends Application {
 
         @Override
         protected String doInBackground(String... params) {
-            TheTVDBInterface tvdbInterface = ((TheTVDBInterface)getApplicationContext());
-            JSONObject jwtToken = tvdbInterface.getJwtToken();
-            Log.d(getClass().getName(), "Current token = " + jwtToken.toString());
-            Log.d(getClass().getName(), "Search query = " + params[0]);
             try {
-                String fixedQuery = params[0].replace(" ", "%20");
-                URL url = new URL("https://api.thetvdb.com/search/series?name=" + fixedQuery);
+                String fixedQuery = params[1].replace(" ", "%20");
+                URL url = new URL(params[0] + fixedQuery);
                 connection = (HttpURLConnection)url.openConnection();
-
-                String bearerAuth = "Bearer " + jwtToken.get("token").toString();
-                connection.setRequestMethod("GET");
-                connection.setRequestProperty("Authorization", bearerAuth);
-                connection.setRequestProperty("Accept", "application/json");
-                connection.setRequestProperty("Accept-Language", "en-US");
+                createHeader(connection);
 
                 int status = connection.getResponseCode();
 
@@ -160,6 +170,70 @@ public class TheTVDBInterface extends Application {
 
         protected void onPostExecute(String result) {
             this.activity.setSearchResult(result);
+            progressDialog.cancel();
+        }
+    }
+
+    private class TheTVDBGetGraphical extends AsyncTask<String, Integer, String> {
+        private String searchResult;
+        private TVDBActivty activity;
+        ProgressDialog progressDialog;
+        private HttpURLConnection connection = null;
+
+        public TheTVDBGetGraphical(TVDBActivty obj) {
+            activity = obj;
+        }
+
+        @Override
+        protected void onPreExecute() {
+
+            progressDialog = new ProgressDialog(activity);
+            progressDialog.setMessage("Downloading...");
+            progressDialog.setCancelable(false);
+            progressDialog.show();
+
+        }
+
+        @Override
+        protected String doInBackground(String... params) {
+            try {
+                URL url;
+                if (params[2].equals("")) {
+                    url = new URL("https://api.thetvdb.com/series/" + params[0] + "/images/query?keyType=" + params[1]);
+                } else {
+                    url = new URL("https://api.thetvdb.com/series/" + params[0] + "/images/query?keyType=" + params[1] + "&subKey=" + params[2]);
+                }
+                connection = (HttpURLConnection) url.openConnection();
+                createHeader(connection);
+
+                int status = connection.getResponseCode();
+
+                if (status == 200) {
+                    BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                    String line;
+                    StringBuilder resp = new StringBuilder();
+                    while ((line = in.readLine()) != null) {
+                        resp.append(line);
+                    }
+                    in.close();
+
+                    searchResult = resp.toString();
+                }
+
+                return searchResult;
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            } finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
+            }
+        }
+
+        protected void onPostExecute(String result) {
+            this.activity.setGraphicalInformation(result);
             progressDialog.cancel();
         }
     }

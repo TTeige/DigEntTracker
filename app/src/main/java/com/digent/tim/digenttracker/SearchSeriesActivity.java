@@ -1,9 +1,10 @@
 package com.digent.tim.digenttracker;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
-import android.view.MenuItem;
+import android.support.v7.app.ActionBar;
+import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -12,53 +13,73 @@ import android.widget.ListView;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-public class SearchSeriesActivity extends AppCompatActivity {
+public class SearchSeriesActivity extends TVDBActivty {
 
-    public JSONArray finalSearchResult = new JSONArray();
-    ArrayAdapter<String> adapter;
-    String[] seriesNames;
-    String[] overview;
-    ListView listView;
+    public JSONArray mFinalSearchResult = new JSONArray();
+    ArrayAdapter<String> mAdapter;
+    String[] mSeriesNames;
+    String[] mOverview;
+    ListView mListView;
+    private Context mContext;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_search_series);
+        mContext = this;
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+        ActionBar ab = getSupportActionBar();
+
+        if (ab != null) {
+            ab.setDisplayHomeAsUpEnabled(true);
+        }
 
         Intent intent = getIntent();
-        String message = intent.getStringExtra(MainActivity.EXTRA_MESSAGE);
-        TheTVDBInterface tvdbInterface = ((TheTVDBInterface) getApplicationContext());
+        String message = intent.getStringExtra("query");
+        setTitle(message);
 
-        tvdbInterface.searchTVDB(this, message);
+        TheTVDBInterface tvdbInterface = ((TheTVDBInterface) getApplicationContext());
+        String path = "https://api.thetvdb.com/search/series?name=";
+        tvdbInterface.searchTVDB(this, path, message);
 
     }
 
     public void setSearchResult(String result) {
         try {
             JSONObject tmp = new JSONObject(result);
-            this.finalSearchResult = tmp.getJSONArray("data");
-            listView = (ListView) findViewById(R.id.list);
-            seriesNames = new String[this.finalSearchResult.length()];
-            overview = new String[this.finalSearchResult.length()];
+            this.mFinalSearchResult = tmp.getJSONArray("data");
+            int dataLength = this.mFinalSearchResult.length();
 
-            for (int i = 0; i < this.finalSearchResult.length(); i++) {
-                JSONObject series = this.finalSearchResult.getJSONObject(i);
-                seriesNames[i] = series.get("seriesName").toString();
+            mListView = (ListView) findViewById(R.id.list);
+            mSeriesNames = new String[dataLength];
+            mOverview = new String[dataLength];
+            final int seriesID[] = new int[dataLength];
 
-                overview[i] = series.get("overview").toString();
+            for (int i = 0; i < dataLength; i++) {
+                JSONObject series = this.mFinalSearchResult.getJSONObject(i);
+                mSeriesNames[i] = series.get("seriesName").toString();
+
+                mOverview[i] = series.get("overview").toString();
+
+                seriesID[i] = Integer.parseInt(series.get("id").toString());
             }
 
-            adapter = new ArrayAdapter<>(this,
-                    android.R.layout.simple_list_item_1, android.R.id.text1, seriesNames);
-            listView.setAdapter(adapter);
+            mAdapter = new ArrayAdapter<>(this,
+                    android.R.layout.simple_list_item_1, android.R.id.text1, mSeriesNames);
+            mListView.setAdapter(mAdapter);
 
-            listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
                 @Override
                 public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                    String itemValue = (String) listView.getItemAtPosition(position);
+                    Intent intent = new Intent(mContext, ShowSeriesActivity.class);
 
-                    Intent intent = new Intent(this, ShowSeriesActivity.class);
+                    intent.putExtra("seriesID", seriesID[position]);
+                    intent.putExtra("seriesName", mSeriesNames[position]);
+
+                    startActivity(intent);
                 }
             });
 
@@ -67,8 +88,10 @@ public class SearchSeriesActivity extends AppCompatActivity {
         }
     }
 
-    public boolean onOptionsItemSelect(MenuItem menuItem) {
-        int id = menuItem.getItemId();
-        return super.onOptionsItemSelected(menuItem);
+    @Override
+    public void setGraphicalInformation(String result) {
+
     }
+
+
 }

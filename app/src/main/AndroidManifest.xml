@@ -24,9 +24,18 @@
             android:parentActivityName=".MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.digent.tim.digenttracker.MainActivity"></meta-data>
+                android:value="com.digent.tim.digenttracker.MainActivity">
+            </meta-data>
         </activity>
-        <activity android:name=".ShowSeriesActivity"></activity>
+        <activity
+            android:name=".ShowSeriesActivity"
+            android:parentActivityName=".SearchSeriesActivity"
+            android:label="@string/series_name">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.digent.tim.digenttracker.SearchSeriesActivity">
+            </meta-data>
+        </activity>
     </application>
 
 </manifest>

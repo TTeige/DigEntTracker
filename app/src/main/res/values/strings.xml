@@ -1,6 +1,9 @@
 <resources>
     <string name="app_name">DigEntTracker</string>
-    <string name="search">Enter Search</string>
-    <string name="button_send">Send</string>
+    <string name="search">Enter Series Name...</string>
+    <string name="simple_search">Search</string>
+    <string name="button_send">Search</string>
     <string name="title_activity_display_message">My Message</string>
+    <string name="series_name">empty</string>
+    <string name="menu_button">Menu</string>
 </resources>
