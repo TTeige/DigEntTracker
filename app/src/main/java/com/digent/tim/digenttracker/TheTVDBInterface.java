@@ -3,6 +3,8 @@ package com.digent.tim.digenttracker;
 import android.app.Activity;
 import android.app.Application;
 import android.app.ProgressDialog;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.util.Log;
 
@@ -11,6 +13,7 @@ import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -48,8 +51,8 @@ public class TheTVDBInterface extends Application {
         new TheTVDBSearch(activity).execute(path, query);
     }
 
-    public void getGraphicalInformation(TVDBActivty activity, String id, String keyType, String subKey) {
-        new TheTVDBGetGraphical(activity).execute(id, keyType, subKey);
+    public void seriesSearchTVDB(TVDBActivty activity, String path, String query) {
+        new TheTVDBSearchSeries(activity).execute(path, query);
     }
 
     private void createHeader(HttpURLConnection connection) {
@@ -115,7 +118,7 @@ public class TheTVDBInterface extends Application {
         }
     }
 
-    private class TheTVDBSearch extends AsyncTask<String, Integer, String> {
+    private class TheTVDBSearch extends AsyncTask<String, Integer, SearchResult> {
         private String searchResult;
         private TVDBActivty activity;
         ProgressDialog progressDialog;
@@ -136,7 +139,7 @@ public class TheTVDBInterface extends Application {
         }
 
         @Override
-        protected String doInBackground(String... params) {
+        protected SearchResult doInBackground(String... params) {
             try {
                 String fixedQuery = params[1].replace(" ", "%20");
                 URL url = new URL(params[0] + fixedQuery);
@@ -156,7 +159,7 @@ public class TheTVDBInterface extends Application {
 
                     searchResult = resp.toString();
                 }
-                return searchResult;
+                return new SearchResult(new JSONObject(searchResult), null, null, null);
 
             } catch (Exception e) {
                 Log.d(getClass().getSimpleName(), "Error, reason: " + e);
@@ -168,19 +171,22 @@ public class TheTVDBInterface extends Application {
             }
         }
 
-        protected void onPostExecute(String result) {
+        protected void onPostExecute(SearchResult result) {
             this.activity.setSearchResult(result);
             progressDialog.cancel();
         }
     }
 
-    private class TheTVDBGetGraphical extends AsyncTask<String, Integer, String> {
-        private String searchResult;
+    private class TheTVDBSearchSeries extends AsyncTask<String, Integer, SearchResult> {
+        private JSONObject searchResult;
+        private JSONObject graphicalInformation;
+        private JSONObject actors;
         private TVDBActivty activity;
+        private Bitmap image = null;
         ProgressDialog progressDialog;
         private HttpURLConnection connection = null;
 
-        public TheTVDBGetGraphical(TVDBActivty obj) {
+        public TheTVDBSearchSeries(TVDBActivty obj) {
             activity = obj;
         }
 
@@ -195,15 +201,11 @@ public class TheTVDBInterface extends Application {
         }
 
         @Override
-        protected String doInBackground(String... params) {
+        protected SearchResult doInBackground(String... params) {
             try {
-                URL url;
-                if (params[2].equals("")) {
-                    url = new URL("https://api.thetvdb.com/series/" + params[0] + "/images/query?keyType=" + params[1]);
-                } else {
-                    url = new URL("https://api.thetvdb.com/series/" + params[0] + "/images/query?keyType=" + params[1] + "&subKey=" + params[2]);
-                }
-                connection = (HttpURLConnection) url.openConnection();
+                String fixedQuery = params[1].replace(" ", "%20");
+                URL url = new URL(params[0] + fixedQuery);
+                connection = (HttpURLConnection)url.openConnection();
                 createHeader(connection);
 
                 int status = connection.getResponseCode();
@@ -217,10 +219,88 @@ public class TheTVDBInterface extends Application {
                     }
                     in.close();
 
-                    searchResult = resp.toString();
+                    searchResult = new JSONObject(resp.toString());
+                    searchResult = searchResult.getJSONObject("data");
                 }
 
-                return searchResult;
+            } catch (Exception e) {
+                Log.d(getClass().getSimpleName(), "Error, reason: " + e);
+                return null;
+            } finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
+            }
+
+            try {
+                URL url = new URL(params[0] + params[1] + "/actors");
+                connection = (HttpURLConnection)url.openConnection();
+                createHeader(connection);
+
+                int status = connection.getResponseCode();
+
+                if (status == 200) {
+                    BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                    String line;
+                    StringBuilder resp = new StringBuilder();
+                    while ((line = in.readLine()) != null) {
+                        resp.append(line);
+                    }
+                    in.close();
+
+                    actors = new JSONObject(resp.toString());
+                }
+
+            } catch (Exception e) {
+                Log.d(getClass().getSimpleName(), "Error, reason: " + e);
+                return null;
+            } finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
+            }
+
+            try {
+                URL url = new URL("https://api.thetvdb.com/series/" + searchResult.getString("id") + "/images/query?keyType=" + "series");
+                connection = (HttpURLConnection)url.openConnection();
+                createHeader(connection);
+
+                int status = connection.getResponseCode();
+
+                if (status == 200) {
+                    BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                    String line;
+                    StringBuilder resp = new StringBuilder();
+                    while ((line = in.readLine()) != null) {
+                        resp.append(line);
+                    }
+                    in.close();
+
+                    graphicalInformation = new JSONObject(resp.toString());
+                }
+            } catch (Exception e) {
+                Log.d(getClass().getSimpleName(), "Error, reason: " + e);
+                return null;
+            } finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
+            }
+
+            try {
+                URL url = new URL("http://api.thetvdb.com/banners/" + graphicalInformation.getJSONArray("data").getJSONObject(0).getString("fileName"));
+
+                connection = (HttpURLConnection) url.openConnection();
+                createHeader(connection);
+
+                int status = connection.getResponseCode();
+
+                if (status == 200) {
+                    InputStream in = connection.getInputStream();
+                    image = BitmapFactory.decodeStream(in);
+                }
+
+                return new SearchResult(searchResult, graphicalInformation, actors, image);
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -232,8 +312,8 @@ public class TheTVDBInterface extends Application {
             }
         }
 
-        protected void onPostExecute(String result) {
-            this.activity.setGraphicalInformation(result);
+        protected void onPostExecute(SearchResult result) {
+            this.activity.setSearchResult(result);
             progressDialog.cancel();
         }
     }

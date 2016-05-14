@@ -3,14 +3,16 @@ package com.digent.tim.digenttracker;
 import android.support.v7.app.ActionBar;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
+import android.widget.ArrayAdapter;
+import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.TextView;
 
-import org.json.JSONException;
-import org.json.JSONObject;
+import org.json.JSONArray;
 
 public class ShowSeriesActivity extends TVDBActivty {
 
-    JSONObject mSeriesInformation;
-    JSONObject mGraphicalInformation;
+    SearchResult mSearchResult;
     TheTVDBInterface mTvdbInterface;
 
     @Override
@@ -34,24 +36,38 @@ public class ShowSeriesActivity extends TVDBActivty {
         mTvdbInterface = ((TheTVDBInterface) getApplicationContext());
 
         String path = "https://api.thetvdb.com/series/";
-        mTvdbInterface.searchTVDB(this, path, String.valueOf(seriesID));
+        mTvdbInterface.seriesSearchTVDB(this, path, String.valueOf(seriesID));
     }
 
     @Override
-    public void setSearchResult(String result) {
+    public void setSearchResult(SearchResult result) {
         try {
-            mSeriesInformation = new JSONObject(result);
-            mSeriesInformation = mSeriesInformation.getJSONObject("data");
-            mTvdbInterface.getGraphicalInformation(this, mSeriesInformation.getString("id"), "poster", "");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+            mSearchResult = result;
+            TextView overviewText = (TextView) findViewById(R.id.overview);
+            if (overviewText != null) {
+                overviewText.setText(mSearchResult.mSearchResult.getString("overview"));
+            }
 
-    @Override
-    public void setGraphicalInformation(String result) {
-        try {
-            mGraphicalInformation = new JSONObject(result);
+            ImageView imageView = (ImageView) findViewById(R.id.banner_image);
+            if (imageView != null) {
+                imageView.setImageBitmap(mSearchResult.mBanner);
+            }
+
+            ListView listView = (ListView) findViewById(R.id.list);
+            JSONArray actorArray = mSearchResult.mActors.getJSONArray("data");
+            int dataLength = actorArray.length();
+            String[] actorNames = new String[dataLength];
+            String[] roleNames = new String[dataLength];
+            for (int i = 0; i < dataLength; i++) {
+                actorNames[i] = actorArray.getJSONObject(i).getString("name");
+                roleNames[i] = actorArray.getJSONObject(i).getString("role");
+            }
+            ArrayAdapter mAdapter = new ArrayAdapter<>(this,
+                    android.R.layout.simple_list_item_1, android.R.id.text1, roleNames);
+            if (listView != null) {
+                listView.setAdapter(mAdapter);
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
         }

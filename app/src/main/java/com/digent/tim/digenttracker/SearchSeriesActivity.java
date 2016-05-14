@@ -2,6 +2,7 @@ package com.digent.tim.digenttracker;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.support.v7.app.ActionBar;
 import android.support.v7.widget.Toolbar;
@@ -47,15 +48,21 @@ public class SearchSeriesActivity extends TVDBActivty {
     }
 
     public void setSearchResult(String result) {
+
+    }
+
+
+    @Override
+    public void setSearchResult(SearchResult result) {
         try {
-            JSONObject tmp = new JSONObject(result);
+            JSONObject tmp = new JSONObject(result.mSearchResult.toString());
             this.mFinalSearchResult = tmp.getJSONArray("data");
             int dataLength = this.mFinalSearchResult.length();
 
             mListView = (ListView) findViewById(R.id.list);
             mSeriesNames = new String[dataLength];
             mOverview = new String[dataLength];
-            final int seriesID[] = new int[dataLength];
+            final int[] seriesID = new int[dataLength];
 
             for (int i = 0; i < dataLength; i++) {
                 JSONObject series = this.mFinalSearchResult.getJSONObject(i);
@@ -87,11 +94,4 @@ public class SearchSeriesActivity extends TVDBActivty {
             e.printStackTrace();
         }
     }
-
-    @Override
-    public void setGraphicalInformation(String result) {
-
-    }
-
-
 }
