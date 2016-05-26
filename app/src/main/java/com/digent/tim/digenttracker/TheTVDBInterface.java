@@ -38,10 +38,6 @@ public class TheTVDBInterface extends Application {
         }
     }
 
-    public JSONObject getJwtToken() {
-        return jwtToken;
-    }
-
     public void loginTVDB() {
         if (jwtToken == null)
             new TheTVDBLogin().execute();

@@ -1,9 +1,10 @@
 package com.digent.tim.digenttracker;
 
+import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.provider.SearchRecentSuggestions;
 import android.support.v7.app.ActionBar;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
@@ -17,16 +18,14 @@ import org.json.JSONObject;
 public class SearchSeriesActivity extends TVDBActivty {
 
     public JSONArray mFinalSearchResult = new JSONArray();
-    ArrayAdapter<String> mAdapter;
-    String[] mSeriesNames;
-    String[] mOverview;
-    ListView mListView;
+    private String[] mSeriesNames;
     private Context mContext;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_search_series);
+
         mContext = this;
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -36,21 +35,19 @@ public class SearchSeriesActivity extends TVDBActivty {
         if (ab != null) {
             ab.setDisplayHomeAsUpEnabled(true);
         }
-
         Intent intent = getIntent();
-        String message = intent.getStringExtra("query");
-        setTitle(message);
+        String query = intent.getStringExtra("query");
+
+        SearchRecentSuggestions suggestions = new SearchRecentSuggestions(this, SuggestionProvider.AUTHORITY, SuggestionProvider.MODE);
+        suggestions.saveRecentQuery(query, null);
+
+        setTitle(query);
 
         TheTVDBInterface tvdbInterface = ((TheTVDBInterface) getApplicationContext());
         String path = "https://api.thetvdb.com/search/series?name=";
-        tvdbInterface.searchTVDB(this, path, message);
+        tvdbInterface.searchTVDB(this, path, query);
 
     }
-
-    public void setSearchResult(String result) {
-
-    }
-
 
     @Override
     public void setSearchResult(SearchResult result) {
@@ -59,22 +56,19 @@ public class SearchSeriesActivity extends TVDBActivty {
             this.mFinalSearchResult = tmp.getJSONArray("data");
             int dataLength = this.mFinalSearchResult.length();
 
-            mListView = (ListView) findViewById(R.id.list);
+            ListView mListView = (ListView) findViewById(R.id.list);
             mSeriesNames = new String[dataLength];
-            mOverview = new String[dataLength];
             final int[] seriesID = new int[dataLength];
 
             for (int i = 0; i < dataLength; i++) {
                 JSONObject series = this.mFinalSearchResult.getJSONObject(i);
                 mSeriesNames[i] = series.get("seriesName").toString();
-
-                mOverview[i] = series.get("overview").toString();
-
                 seriesID[i] = Integer.parseInt(series.get("id").toString());
             }
 
-            mAdapter = new ArrayAdapter<>(this,
+            ArrayAdapter<String> mAdapter = new ArrayAdapter<>(this,
                     android.R.layout.simple_list_item_1, android.R.id.text1, mSeriesNames);
+            assert mListView != null;
             mListView.setAdapter(mAdapter);
 
             mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
