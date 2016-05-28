@@ -38,9 +38,6 @@ public class SearchSeriesActivity extends TVDBActivty {
         Intent intent = getIntent();
         String query = intent.getStringExtra("query");
 
-        SearchRecentSuggestions suggestions = new SearchRecentSuggestions(this, SuggestionProvider.AUTHORITY, SuggestionProvider.MODE);
-        suggestions.saveRecentQuery(query, null);
-
         setTitle(query);
 
         TheTVDBInterface tvdbInterface = ((TheTVDBInterface) getApplicationContext());

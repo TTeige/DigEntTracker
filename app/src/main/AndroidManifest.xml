@@ -12,11 +12,6 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-        <provider
-            android:authorities=".SuggestionProvider"
-            android:name="com.digent.tim.digenttracker.SuggestionProvider">
-        </provider>
-
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />/>
