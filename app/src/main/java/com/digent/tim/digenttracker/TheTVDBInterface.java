@@ -51,6 +51,14 @@ public class TheTVDBInterface extends Application {
         new TheTVDBSearchSeries(activity).execute(path, query);
     }
 
+    public void actorSearchTVDB(TVDBActivty activity, String path, String query) {
+        new TheTVDBSearchActors(activity).execute(path, query);
+    }
+
+    public void bannerSearch(ActorActivity activity, String path, String query) {
+        new TheTVDBSearchBanner(activity).execute(path, query);
+    }
+
     private void createHeader(HttpURLConnection connection) {
         try {
             String bearerAuth = "Bearer " + jwtToken.get("token").toString();
@@ -176,7 +184,6 @@ public class TheTVDBInterface extends Application {
     private class TheTVDBSearchSeries extends AsyncTask<String, Integer, SearchResult> {
         private JSONObject searchResult;
         private JSONObject graphicalInformation;
-        private JSONObject actors;
         private TVDBActivty activity;
         private Bitmap image = null;
         ProgressDialog progressDialog;
@@ -229,34 +236,6 @@ public class TheTVDBInterface extends Application {
             }
 
             try {
-                URL url = new URL(params[0] + params[1] + "/actors");
-                connection = (HttpURLConnection)url.openConnection();
-                createHeader(connection);
-
-                int status = connection.getResponseCode();
-
-                if (status == 200) {
-                    BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                    String line;
-                    StringBuilder resp = new StringBuilder();
-                    while ((line = in.readLine()) != null) {
-                        resp.append(line);
-                    }
-                    in.close();
-
-                    actors = new JSONObject(resp.toString());
-                }
-
-            } catch (Exception e) {
-                Log.d(getClass().getSimpleName(), "Error, reason: " + e);
-                return null;
-            } finally {
-                if (connection != null) {
-                    connection.disconnect();
-                }
-            }
-
-            try {
                 URL url = new URL("https://api.thetvdb.com/series/" + searchResult.getString("id") + "/images/query?keyType=" + "series");
                 connection = (HttpURLConnection)url.openConnection();
                 createHeader(connection);
@@ -296,7 +275,7 @@ public class TheTVDBInterface extends Application {
                     image = BitmapFactory.decodeStream(in);
                 }
 
-                return new SearchResult(searchResult, graphicalInformation, actors, image);
+                return new SearchResult(searchResult, graphicalInformation, null, image);
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -310,6 +289,120 @@ public class TheTVDBInterface extends Application {
 
         protected void onPostExecute(SearchResult result) {
             this.activity.setSearchResult(result);
+            progressDialog.cancel();
+        }
+    }
+
+    private class TheTVDBSearchActors extends AsyncTask<String, Integer, SearchResult> {
+
+        private TVDBActivty activity;
+        private ProgressDialog progressDialog;
+        private JSONObject actors;
+        private HttpURLConnection connection = null;
+
+        public TheTVDBSearchActors(TVDBActivty obj) {
+            activity = obj;
+        }
+
+        @Override
+        protected void onPreExecute() {
+
+            progressDialog = new ProgressDialog(activity);
+            progressDialog.setMessage("Downloading...");
+            progressDialog.setCancelable(false);
+            progressDialog.show();
+
+        }
+
+        @Override
+        protected SearchResult doInBackground(String... params) {
+            try {
+                URL url = new URL(params[0] + params[1] + "/actors");
+                connection = (HttpURLConnection)url.openConnection();
+                createHeader(connection);
+
+                int status = connection.getResponseCode();
+
+                if (status == 200) {
+                    BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                    String line;
+                    StringBuilder resp = new StringBuilder();
+                    while ((line = in.readLine()) != null) {
+                        resp.append(line);
+                    }
+                    in.close();
+
+                    actors = new JSONObject(resp.toString());
+                }
+
+            } catch (Exception e) {
+                Log.d(getClass().getSimpleName(), "Error, reason: " + e);
+                return null;
+            } finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
+            }
+
+            return new SearchResult(null, null, actors, null);
+        }
+
+        protected void onPostExecute(SearchResult result) {
+            this.activity.setSearchResult(result);
+            progressDialog.cancel();
+        }
+    }
+
+    private class TheTVDBSearchBanner extends AsyncTask<String, Integer, Bitmap> {
+
+        private ActorActivity activity;
+        private ProgressDialog progressDialog;
+        private Bitmap banner;
+        private HttpURLConnection connection = null;
+
+        public TheTVDBSearchBanner(ActorActivity obj) {
+            activity = obj;
+        }
+
+        @Override
+        protected void onPreExecute() {
+
+            progressDialog = new ProgressDialog(activity);
+            progressDialog.setMessage("Downloading...");
+            progressDialog.setCancelable(false);
+            progressDialog.show();
+
+        }
+
+        @Override
+        protected Bitmap doInBackground(String... params) {
+            try {
+                URL url = new URL(params[0] + params[1]);
+
+                connection = (HttpURLConnection) url.openConnection();
+                createHeader(connection);
+
+                int status = connection.getResponseCode();
+
+                if (status == 200) {
+                    InputStream in = connection.getInputStream();
+                    banner = BitmapFactory.decodeStream(in);
+                }
+
+                return banner;
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            } finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
+            }
+        }
+
+        protected void onPostExecute(Bitmap result) {
+            this.activity.setActorImage(result);
             progressDialog.cancel();
         }
     }

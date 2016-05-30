@@ -3,5 +3,6 @@
     android:label="@string/app_name"
     android:hint="@string/search_hint"
     android:searchSuggestAuthority="com.digent.tim.digenttracker.SuggestionProvider"
-    android:searchSuggestSelection=" ?">
+    android:searchSuggestSelection=" ?"
+    android:searchSuggestThreshold="1">
 </searchable>

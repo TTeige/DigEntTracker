@@ -1,9 +1,11 @@
 package com.digent.tim.digenttracker;
 
+import android.content.Intent;
 import android.content.res.Resources;
 import android.support.v7.app.ActionBar;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -14,6 +16,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class ShowSeriesActivity extends TVDBActivty {
+
+    private int seriesID;
+    private String seriesName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,15 +33,21 @@ public class ShowSeriesActivity extends TVDBActivty {
             ab.setDisplayHomeAsUpEnabled(true);
         }
 
-        int seriesID = getIntent().getExtras().getInt("seriesID");
-        String seriesName = getIntent().getExtras().getString("seriesName");
+        seriesID = getIntent().getExtras().getInt("seriesID");
+        seriesName = getIntent().getExtras().getString("seriesName");
 
         setTitle(seriesName);
 
         TheTVDBInterface mTvdbInterface = ((TheTVDBInterface) getApplicationContext());
-
         String path = "https://api.thetvdb.com/series/";
         mTvdbInterface.seriesSearchTVDB(this, path, String.valueOf(seriesID));
+    }
+
+    public void launchActorIntent(View view) {
+        Intent intent = new Intent(this, ActorActivity.class);
+        intent.putExtra("seriesID", seriesID);
+        intent.putExtra("seriesName", seriesName);
+        startActivity(intent);
     }
 
     @Override
@@ -57,21 +68,6 @@ public class ShowSeriesActivity extends TVDBActivty {
             ImageView imageView = (ImageView) findViewById(R.id.banner_image);
             if (imageView != null) {
                 imageView.setImageBitmap(result.mBanner);
-            }
-
-            ListView listView = (ListView) findViewById(R.id.list);
-            JSONArray actorArray = result.mActors.getJSONArray("data");
-            int dataLength = actorArray.length();
-            ArrayList<HashMap<String, String>> actorList = new ArrayList<>();
-            for (int i = 0; i < dataLength; i++) {
-                HashMap<String, String> actor = new HashMap<>();
-                actor.put("title", actorArray.getJSONObject(i).getString("name"));
-                actor.put("subtext", actorArray.getJSONObject(i).getString("role"));
-                actorList.add(actor);
-            }
-            CustomImageListAdapter mAdapter = new CustomImageListAdapter(this, actorList);
-            if (listView != null) {
-                listView.setAdapter(mAdapter);
             }
 
         } catch (Exception e) {
