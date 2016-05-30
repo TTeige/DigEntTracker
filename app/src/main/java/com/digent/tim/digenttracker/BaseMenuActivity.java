@@ -24,6 +24,7 @@ public class BaseMenuActivity extends AppCompatActivity {
         if (null != searchView) {
             searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
             searchView.setIconifiedByDefault(false);
+            searchView.setSubmitButtonEnabled(true);
         }
 
         SearchView.OnQueryTextListener queryTextListener = new SearchView.OnQueryTextListener() {
@@ -32,7 +33,7 @@ public class BaseMenuActivity extends AppCompatActivity {
             }
 
             public boolean onQueryTextSubmit(String query) {
-                Intent intent = new Intent(mCtx, SearchSeriesActivity.class);
+                Intent intent = new Intent("android.intent.action.SEARCH", null, mCtx, SearchSeriesActivity.class);
                 intent.putExtra("query", query);
                 startActivity(intent);
                 return true;

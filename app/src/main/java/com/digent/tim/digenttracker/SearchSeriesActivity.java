@@ -25,7 +25,17 @@ public class SearchSeriesActivity extends TVDBActivty {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_search_series);
+        handleIntent(getIntent());
 
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        setIntent(intent);
+        handleIntent(intent);
+    }
+
+    private void handleIntent(Intent intent) {
         mContext = this;
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -35,15 +45,20 @@ public class SearchSeriesActivity extends TVDBActivty {
         if (ab != null) {
             ab.setDisplayHomeAsUpEnabled(true);
         }
-        Intent intent = getIntent();
-        String query = intent.getStringExtra("query");
+
+        String query = "";
+        if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
+            query = intent.getStringExtra(SearchManager.QUERY);
+            SearchRecentSuggestions suggestions = new SearchRecentSuggestions(this,
+                    SuggestionProvider.AUTHORITY, SuggestionProvider.MODE);
+            suggestions.saveRecentQuery(query, null);
+        }
 
         setTitle(query);
 
         TheTVDBInterface tvdbInterface = ((TheTVDBInterface) getApplicationContext());
         String path = "https://api.thetvdb.com/search/series?name=";
         tvdbInterface.searchTVDB(this, path, query);
-
     }
 
     @Override
