@@ -6,11 +6,14 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
+import android.util.Base64;
 import android.widget.ListView;
 
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -18,6 +21,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ActorActivity extends TVDBActivty {
+
+    String mFullSeriesPath;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,6 +46,7 @@ public class ActorActivity extends TVDBActivty {
 
         TheTVDBInterface mTvdbInterface = ((TheTVDBInterface) getApplicationContext());
         String path = "https://api.thetvdb.com/series/";
+        mFullSeriesPath = path + String.valueOf(seriesID);
         mTvdbInterface.actorSearchTVDB(this, path, String.valueOf(seriesID));
     }
 
@@ -53,8 +59,14 @@ public class ActorActivity extends TVDBActivty {
             ArrayList<HashMap<String, String>> actorList = new ArrayList<>();
             for (int i = 0; i < dataLength; i++) {
                 HashMap<String, String> actor = new HashMap<>();
-                actor.put("title", actorArray.getJSONObject(i).getString("name"));
-                actor.put("subtext", actorArray.getJSONObject(i).getString("role"));
+                JSONObject JSONactor = actorArray.getJSONObject(i);
+                actor.put("title", JSONactor.getString("name"));
+                actor.put("subtext", JSONactor.getString("role"));
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                result.mBanners.get(JSONactor.getInt("id")).compress(Bitmap.CompressFormat.PNG, 100, baos);
+                byte[] b = baos.toByteArray();
+                String encoded = Base64.encodeToString(b, Base64.DEFAULT);
+                actor.put("bitmap", encoded);
                 actorList.add(actor);
             }
 
@@ -69,10 +81,6 @@ public class ActorActivity extends TVDBActivty {
         } catch (JSONException e) {
             e.printStackTrace();
         }
-    }
-
-    public void setActorImage(Bitmap banner) {
-
     }
 
     private class MapComparator implements Comparator<Map<String, String>> {

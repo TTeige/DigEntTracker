@@ -8,6 +8,8 @@ import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.util.Log;
 
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -17,6 +19,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.HashMap;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -262,6 +265,8 @@ public class TheTVDBInterface extends Application {
                 }
             }
 
+            HashMap<Integer, Bitmap> bannerImage = new HashMap<>();
+
             try {
                 URL url = new URL("http://api.thetvdb.com/banners/" + graphicalInformation.getJSONArray("data").getJSONObject(0).getString("fileName"));
 
@@ -273,9 +278,10 @@ public class TheTVDBInterface extends Application {
                 if (status == 200) {
                     InputStream in = connection.getInputStream();
                     image = BitmapFactory.decodeStream(in);
+                    bannerImage.put(Integer.parseInt(params[1]), image);
                 }
 
-                return new SearchResult(searchResult, graphicalInformation, null, image);
+                return new SearchResult(searchResult, graphicalInformation, null, bannerImage);
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -344,7 +350,41 @@ public class TheTVDBInterface extends Application {
                 }
             }
 
-            return new SearchResult(null, null, actors, null);
+            HashMap<Integer, Bitmap> actorImages = new HashMap<>();
+
+            try {
+                JSONArray actorArray = actors.getJSONArray("data");
+                for (int i = 0; i < actorArray.length(); ++i) {
+                    try {
+                        JSONObject actor = actorArray.getJSONObject(i);
+                        URL url = new URL("http://api.thetvdb.com/banners/" + actor.getString("image"));
+
+                        connection = (HttpURLConnection) url.openConnection();
+                        createHeader(connection);
+
+                        int status = connection.getResponseCode();
+
+                        if (status == 200) {
+                            InputStream in = connection.getInputStream();
+                            Bitmap image = BitmapFactory.decodeStream(in);
+                            actorImages.put(Integer.parseInt(actor.getString("id")), image);
+                        }
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return null;
+                    } finally {
+                        if (connection != null) {
+                            connection.disconnect();
+                        }
+                    }
+
+                }
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+
+            return new SearchResult(null, null, actors, actorImages);
         }
 
         protected void onPostExecute(SearchResult result) {
@@ -402,7 +442,6 @@ public class TheTVDBInterface extends Application {
         }
 
         protected void onPostExecute(Bitmap result) {
-            this.activity.setActorImage(result);
             progressDialog.cancel();
         }
     }
